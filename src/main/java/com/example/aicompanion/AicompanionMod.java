@@ -9,11 +9,11 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
-@Mod(aicompanion.MOD_ID)
-public class aicompanion {
+@Mod(AicompanionMod.MOD_ID)
+public class AicompanionMod {
     public static final String MOD_ID = "aicompanion";
 
-    public aicompanion() {
+    public AicompanionMod() {
         FMLJavaModLoadingContext.get().getModEventBus()
                 .addListener(this::commonSetup);
 
