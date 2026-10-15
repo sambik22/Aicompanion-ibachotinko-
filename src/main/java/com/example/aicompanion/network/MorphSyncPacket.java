@@ -1,24 +1,22 @@
 package com.example.aicompanion.network;
 
 import com.example.aicompanion.morph.MorphData;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import java.util.UUID;
-import java.util.function.Supplier;
 
-public class MorphSyncPacket {
+/**
+ * Сервер → клієнт: "гравець playerId тепер виглядає як morphId" (null = скинути морф).
+ */
+public record MorphSyncPacket(UUID playerId, ResourceLocation morphId) {
 
-    private final UUID playerId;
-    private final ResourceLocation morphId; // null = скинути
+    public static final StreamCodec<RegistryFriendlyByteBuf, MorphSyncPacket> STREAM_CODEC =
+            StreamCodec.ofMember(MorphSyncPacket::encode, MorphSyncPacket::decode);
 
-    public MorphSyncPacket(UUID playerId, ResourceLocation morphId) {
-        this.playerId = playerId;
-        this.morphId = morphId;
-    }
-
-    public static void encode(MorphSyncPacket msg, FriendlyByteBuf buf) {
+    public static void encode(MorphSyncPacket msg, RegistryFriendlyByteBuf buf) {
         buf.writeUUID(msg.playerId);
         buf.writeBoolean(msg.morphId != null);
         if (msg.morphId != null) {
@@ -26,17 +24,15 @@ public class MorphSyncPacket {
         }
     }
 
-    public static MorphSyncPacket decode(FriendlyByteBuf buf) {
+    public static MorphSyncPacket decode(RegistryFriendlyByteBuf buf) {
         UUID playerId = buf.readUUID();
         boolean hasMorph = buf.readBoolean();
         ResourceLocation morphId = hasMorph ? buf.readResourceLocation() : null;
         return new MorphSyncPacket(playerId, morphId);
     }
 
-    public static void handle(MorphSyncPacket msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            MorphData.setMorphClient(msg.playerId, msg.morphId);
-        });
-        ctx.get().setPacketHandled(true);
+    // викликається вже на головному потоці клієнта (див. addMain у NetworkHandler)
+    public static void handle(MorphSyncPacket msg, CustomPayloadEvent.Context ctx) {
+        MorphData.setMorphClient(msg.playerId, msg.morphId);
     }
 }
