@@ -1,5 +1,6 @@
 package com.example.aicompanion.pig;
 
+import com.example.aicompanion.pig.talk.PigTalk;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -15,6 +16,7 @@ import java.util.List;
 
 /**
  * /aipig mode <follow|stay|guard|forage|wander> — режим для всіх твоїх свиней поруч
+ * /aipig say <текст> — сказати щось найближчій свині (вона відповість і, можливо, щось зробить)
  * /aipig call    — покликати всіх своїх свиней до себе
  * /aipig list    — список твоїх свиней і їхні режими
  * /aipig release — відпустити всіх своїх свиней поруч
@@ -31,6 +33,9 @@ public final class PigCommands {
                         .then(Commands.argument("mode", StringArgumentType.word())
                                 .suggests((c, b) -> SharedSuggestionProvider.suggest(PigMode.ids(), b))
                                 .executes(c -> setMode(c.getSource(), StringArgumentType.getString(c, "mode")))))
+                .then(Commands.literal("say")
+                        .then(Commands.argument("message", StringArgumentType.greedyString())
+                                .executes(c -> say(c.getSource(), StringArgumentType.getString(c, "message")))))
                 .then(Commands.literal("call").executes(c -> call(c.getSource())))
                 .then(Commands.literal("list").executes(c -> list(c.getSource())))
                 .then(Commands.literal("release").executes(c -> release(c.getSource()))));
@@ -46,6 +51,14 @@ public final class PigCommands {
         pigs.forEach(pig -> PigBrain.setMode(pig, mode));
         source.sendSuccess(() -> Component.literal("Свиней: " + pigs.size() + ". Режим: " + mode.title()), false);
         return pigs.size();
+    }
+
+    private static int say(CommandSourceStack source, String message) throws CommandSyntaxException {
+        if (!PigTalk.talk(source.getPlayerOrException(), message)) {
+            source.sendFailure(Component.literal("Поруч немає жодної свині, яка б тебе почула."));
+            return 0;
+        }
+        return 1;
     }
 
     private static int call(CommandSourceStack source) throws CommandSyntaxException {

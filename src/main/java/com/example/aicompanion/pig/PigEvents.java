@@ -6,6 +6,7 @@ import com.example.aicompanion.pig.goal.ForageGoal;
 import com.example.aicompanion.pig.goal.GuardOwnerGoal;
 import com.example.aicompanion.pig.goal.HerdAlertGoal;
 import com.example.aicompanion.pig.goal.StayGoal;
+import com.example.aicompanion.pig.talk.PigTalk;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -52,6 +53,7 @@ public final class PigEvents {
         Predicate<PlayerInteractEvent.EntityInteract> interact = PigEvents::onInteract;
         PlayerInteractEvent.EntityInteract.BUS.addListener(interact);
         LivingHurtEvent.BUS.addListener(PigEvents::onHurt);
+        PigTalk.register();
     }
 
     private static void onJoinLevel(EntityJoinLevelEvent event) {
