@@ -28,6 +28,10 @@ public class MorphData {
         return SERVER_MORPHS.containsKey(uuid);
     }
 
+    public static Map<UUID, ResourceLocation> getAllServer() {
+        return Map.copyOf(SERVER_MORPHS);
+    }
+
     // ===== КЛІЄНТ =====
     public static void setMorphClient(UUID uuid, ResourceLocation entityId) {
         if (entityId == null) {
@@ -43,5 +47,9 @@ public class MorphData {
 
     public static boolean isMorphedClient(UUID uuid) {
         return CLIENT_MORPHS.containsKey(uuid);
+    }
+
+    public static void clearAllClient() {
+        CLIENT_MORPHS.clear();
     }
 }

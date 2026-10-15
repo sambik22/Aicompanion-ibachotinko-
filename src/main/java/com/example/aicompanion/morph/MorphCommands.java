@@ -6,14 +6,13 @@ import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.EntityType;
-import net.minecraftforge.network.PacketDistributor;
 
 public class MorphCommands {
 
@@ -26,12 +25,15 @@ public class MorphCommands {
                         .requires(src -> src.hasPermission(2))
                         .then(Commands.argument("target", EntityArgument.player())
                                 .then(Commands.argument("entity", ResourceLocationArgument.id())
+                                        .suggests((c, b) -> SharedSuggestionProvider.suggestResource(
+                                                BuiltInRegistries.ENTITY_TYPE.keySet(), b))
                                         .executes(c -> {
                                             ServerPlayer target = EntityArgument.getPlayer(c, "target");
                                             ResourceLocation id = ResourceLocationArgument.getId(c, "entity");
 
-                                            EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(id);
-                                            if (type == null) {
+                                            // ENTITY_TYPE — "defaulted" реєстр: get() для невідомого id
+                                            // повернув би свиню, тому перевіряємо через getOptional
+                                            if (BuiltInRegistries.ENTITY_TYPE.getOptional(id).isEmpty()) {
                                                 c.getSource().sendFailure(
                                                         Component.literal("Невідомий моб: " + id)
                                                 );
@@ -39,15 +41,7 @@ public class MorphCommands {
                                             }
 
                                             MorphData.setMorphServer(target.getUUID(), id);
-
-                                            // розсилаємо всім
-                                            for (ServerPlayer p : c.getSource().getServer()
-                                                    .getPlayerList().getPlayers()) {
-                                                NetworkHandler.INSTANCE.send(
-                                                        PacketDistributor.PLAYER.with(() -> p),
-                                                        new MorphSyncPacket(target.getUUID(), id)
-                                                );
-                                            }
+                                            NetworkHandler.sendToAll(new MorphSyncPacket(target.getUUID(), id));
 
                                             c.getSource().sendSuccess(
                                                     () -> Component.literal("Гравець " +
@@ -70,14 +64,7 @@ public class MorphCommands {
                                     ServerPlayer target = EntityArgument.getPlayer(c, "target");
 
                                     MorphData.clearMorphServer(target.getUUID());
-
-                                    for (ServerPlayer p : c.getSource().getServer()
-                                            .getPlayerList().getPlayers()) {
-                                        NetworkHandler.INSTANCE.send(
-                                                PacketDistributor.PLAYER.with(() -> p),
-                                                new MorphSyncPacket(target.getUUID(), null)
-                                        );
-                                    }
+                                    NetworkHandler.sendToAll(new MorphSyncPacket(target.getUUID(), null));
 
                                     c.getSource().sendSuccess(
                                             () -> Component.literal("Морф гравця " +
